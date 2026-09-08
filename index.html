@@ -1,0 +1,992 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0a0a0d">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Anchor">
+<title>Anchor — Daily Ritual</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Familjen+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0a0a0d;
+    --bg2:#131319;
+    --bg3:#1b1b23;
+    --line:#2a2a34;
+    --text:#f2f1ee;
+    --text-soft:#8f8d99;
+
+    /* rainbow, one per category */
+    --c-prayer:#c77dff;
+    --c-affirmation:#ffd166;
+    --c-exercise:#4ade80;
+    --c-todo:#4ea8ff;
+    --c-habit:#ff9f45;
+    --c-goal:#ff6ec7;
+    --danger:#ff5470;
+
+    --radius:14px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:#000;
+    color:var(--text);
+    font-family:'Familjen Grotesk', sans-serif;
+    -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+  }
+  #app{
+    max-width:480px;
+    margin:0 auto;
+    min-height:100vh;
+    background:var(--bg);
+    display:flex;
+    flex-direction:column;
+    position:relative;
+  }
+  ::selection{background:var(--c-todo); color:#000;}
+
+  header.top{
+    background:var(--bg2);
+    color:var(--text);
+    padding:26px 20px 20px;
+    position:relative;
+    overflow:hidden;
+    border-bottom:1px solid var(--line);
+  }
+  header.top .rule{
+    position:absolute; left:0; right:0; bottom:-1px; height:3px;
+    background:linear-gradient(90deg,var(--c-prayer),var(--c-affirmation),var(--c-exercise),var(--c-todo),var(--c-habit),var(--c-goal));
+  }
+  .greeting{
+    font-family:'Fraunces', serif;
+    font-weight:500;
+    font-size:25px;
+    line-height:1.15;
+    margin:0 0 4px;
+  }
+  .datestr{ font-size:13px; color:var(--text-soft); }
+  .settings-btn{
+    position:absolute; top:22px; right:18px;
+    background:transparent; border:1px solid var(--line);
+    color:var(--text); width:34px;height:34px; border-radius:50%;
+    font-size:15px; cursor:pointer; display:flex; align-items:center; justify-content:center;
+  }
+  .settings-btn:active{background:var(--bg3);}
+
+  .tabs{display:flex; gap:6px; padding:12px 18px 0;}
+  .tab{
+    background:transparent; border:1px solid var(--line); color:var(--text-soft);
+    font-size:12.5px; padding:6px 12px; border-radius:999px; cursor:pointer;
+  }
+  .tab.active{background:var(--bg3); color:var(--text); border-color:var(--text-soft);}
+
+  .streak-strip{
+    display:flex; gap:8px; overflow-x:auto; padding:14px 20px 4px;
+    scrollbar-width:none;
+  }
+  .streak-strip::-webkit-scrollbar{display:none;}
+  .streak-chip{
+    flex:0 0 auto;
+    background:var(--bg3);
+    border:1px solid var(--line);
+    border-radius:999px;
+    padding:7px 13px;
+    font-size:12.5px;
+    color:var(--text);
+    display:flex; align-items:center; gap:6px;
+    white-space:nowrap;
+  }
+  .streak-chip .n{font-weight:600;}
+
+  main{ flex:1; padding:18px 18px 150px; overflow-y:auto; }
+  .section{margin-bottom:22px;}
+  .section-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:9px; gap:8px;}
+  .section-title{
+    font-family:'Fraunces', serif; font-size:16.5px; font-weight:500;
+    color:var(--text); display:flex; align-items:center; gap:8px;
+  }
+  .section-title .dot{ width:9px;height:9px;border-radius:50%; box-shadow:0 0 8px currentColor;}
+  .section-right{display:flex; align-items:center; gap:8px;}
+  .section-count{font-size:11.5px; color:var(--text-soft);}
+  .add-btn{
+    width:24px;height:24px;border-radius:50%; border:1px solid var(--line);
+    background:var(--bg3); color:var(--text); font-size:14px; cursor:pointer;
+    display:flex; align-items:center; justify-content:center; line-height:1;
+  }
+
+  .card-list{ background:var(--bg2); border:1px solid var(--line); border-radius:var(--radius); overflow:hidden; max-height:320px; overflow-y:auto; }
+  .item{ display:flex; align-items:flex-start; gap:11px; padding:12px 14px; border-bottom:1px solid var(--line); }
+  .item:last-child{border-bottom:none;}
+  .item.done{background:rgba(255,255,255,.03);}
+  .check{
+    flex:0 0 auto; width:21px; height:21px; border-radius:6px;
+    border:1.6px solid var(--text-soft); margin-top:1px;
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer; background:transparent; font-size:13px; color:#000;
+  }
+  .item.done .check{ border-color: var(--cat-color, var(--c-todo)); background:var(--cat-color, var(--c-todo)); }
+  .item-body{flex:1; min-width:0; cursor:pointer;}
+  .item-text{font-size:14.5px; line-height:1.4; color:var(--text);}
+  .item.done .item-text{color:var(--text-soft); text-decoration:line-through;}
+  .item-meta{font-size:11.5px; color:var(--text-soft); margin-top:2px;}
+  .item-del{ flex:0 0 auto; background:none; border:none; color:var(--text-soft); font-size:16px; cursor:pointer; padding:2px 4px; opacity:.6; }
+
+  .goal-item{padding:13px 14px; border-bottom:1px solid var(--line);}
+  .goal-item:last-child{border-bottom:none;}
+  .goal-top{display:flex; justify-content:space-between; align-items:center; margin-bottom:7px; gap:8px;}
+  .goal-text{font-size:14.5px; color:var(--text); cursor:pointer;}
+  .goal-pct{font-size:12px; color:var(--c-goal); font-weight:600; flex:0 0 auto;}
+  .goal-bar{height:6px; background:var(--bg3); border-radius:4px; overflow:hidden;}
+  .goal-fill{height:100%; background:var(--c-goal); border-radius:4px;}
+  .goal-controls{display:flex; gap:6px; margin-top:8px;}
+  .goal-controls button{ border:1px solid var(--line); background:var(--bg3); border-radius:7px; font-size:12px; padding:4px 9px; cursor:pointer; color:var(--text); }
+
+  .affirmation-card{
+    background:var(--bg2); border:1px solid var(--line); border-left:3px solid var(--c-affirmation);
+    color:var(--text); border-radius:var(--radius); padding:20px;
+    font-family:'Fraunces', serif; font-size:17px; line-height:1.45; font-weight:500; position:relative;
+  }
+  .affirmation-card .body{}
+  .affirmation-nav{display:flex; justify-content:space-between; align-items:center; margin-top:14px;}
+  .affirmation-nav button{ background:none;border:none;color:var(--c-affirmation);font-size:13px;cursor:pointer; font-family:'Familjen Grotesk',sans-serif;}
+  .affirmation-dots{display:flex; gap:5px;}
+  .affirmation-dots span{width:5px;height:5px;border-radius:50%;background:var(--line);}
+  .affirmation-dots span.active{background:var(--c-affirmation);}
+
+  .empty{ padding:20px 14px; text-align:center; color:var(--text-soft); font-size:13.5px; background:var(--bg2); border:1px dashed var(--line); border-radius:var(--radius); }
+
+  .composer-wrap{ position:sticky; bottom:0; left:0; right:0; background:linear-gradient(180deg, transparent, var(--bg) 30%); padding:10px 14px 14px; }
+  .composer{ background:var(--bg2); border:1px solid var(--line); border-radius:20px; display:flex; align-items:flex-end; gap:8px; padding:8px 8px 8px 16px; box-shadow:0 8px 24px rgba(0,0,0,.5); }
+  .composer textarea{ flex:1; background:transparent; border:none; outline:none; resize:none; color:var(--text); font-family:'Familjen Grotesk', sans-serif; font-size:14.5px; line-height:1.4; max-height:90px; padding:8px 0; }
+  .composer textarea::placeholder{color:var(--text-soft);}
+  .composer button.send{
+    flex:0 0 auto; border:none; color:#000; width:36px;height:36px;border-radius:50%; font-size:15px; cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+    background:conic-gradient(from 180deg,var(--c-prayer),var(--c-affirmation),var(--c-exercise),var(--c-todo),var(--c-habit),var(--c-goal),var(--c-prayer));
+  }
+  .composer button.send:disabled{opacity:.4;}
+  .composer-hint{font-size:11.5px; color:var(--text-soft); text-align:center; margin-top:6px;}
+
+  .toast{
+    position:fixed; left:50%; transform:translateX(-50%); bottom:100px; max-width:420px; width:calc(100% - 40px);
+    background:var(--bg3); border:1px solid var(--line); color:var(--text); padding:11px 15px; border-radius:10px;
+    font-size:13px; box-shadow:0 6px 20px rgba(0,0,0,.5); opacity:0; pointer-events:none;
+    transition:opacity .25s, transform .25s; z-index:50; display:flex; align-items:center; justify-content:space-between; gap:10px;
+  }
+  .toast.show{opacity:1; transform:translateX(-50%) translateY(-4px); pointer-events:auto;}
+  .toast button{ background:none;border:none;color:var(--c-todo); font-size:12.5px; cursor:pointer; font-weight:600; flex:0 0 auto;}
+
+  .modal-backdrop{ position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:80; display:none; align-items:flex-end; justify-content:center; }
+  .modal-backdrop.show{display:flex;}
+  .modal{ background:var(--bg2); border-top:1px solid var(--line); width:100%; max-width:480px; border-radius:18px 18px 0 0; padding:22px 20px 28px; max-height:85vh; overflow-y:auto; }
+  .modal h3{font-family:'Fraunces',serif; margin:0 0 14px; font-size:19px; color:var(--text);}
+  .modal label{display:block; font-size:12px; color:var(--text-soft); margin:14px 0 5px;}
+  .modal input, .modal textarea, .modal select{
+    width:100%; border:1px solid var(--line); border-radius:9px; padding:9px 11px;
+    font-size:14px; font-family:inherit; background:var(--bg3); color:var(--text);
+  }
+  .modal textarea{resize:vertical; min-height:60px;}
+  .type-pills{display:flex; gap:6px; flex-wrap:wrap;}
+  .type-pill{
+    border:1.5px solid var(--line); background:var(--bg3); color:var(--text-soft);
+    border-radius:999px; padding:6px 12px; font-size:12.5px; cursor:pointer;
+  }
+  .type-pill.active{color:#000; font-weight:600; border-color:transparent;}
+  .modal-actions{display:flex; gap:10px; margin-top:18px;}
+  .modal-actions button{ flex:1; border:none; border-radius:9px; padding:11px; font-size:14px; cursor:pointer; }
+  .btn-primary{background:var(--c-todo); color:#000; font-weight:600;}
+  .btn-secondary{background:var(--bg3); color:var(--text); border:1px solid var(--line) !important;}
+  .btn-danger{background:transparent; color:var(--danger); border:1px solid var(--danger) !important;}
+
+  .loading-dots span{ display:inline-block; width:5px;height:5px;border-radius:50%; background:var(--c-todo); margin-right:3px; animation:pulse 1s infinite ease-in-out; }
+  .loading-dots span:nth-child(2){animation-delay:.15s;}
+  .loading-dots span:nth-child(3){animation-delay:.3s;}
+  @keyframes pulse{0%,80%,100%{opacity:.3;}40%{opacity:1;}}
+
+  .offline-banner{
+    background:#3a2a10; color:var(--c-habit); font-size:12px; padding:8px 18px; text-align:center;
+    display:none; border-bottom:1px solid var(--line);
+  }
+  .offline-banner.show{display:block;}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <header class="top">
+    <button class="settings-btn" id="settingsBtn" aria-label="Settings">⚙</button>
+    <div class="greeting" id="greeting">Good morning</div>
+    <div class="datestr" id="datestr"></div>
+    <div class="rule"></div>
+  </header>
+
+  <div class="offline-banner" id="offlineBanner">Filing offline — items go in as best-guess todos until you're back online.</div>
+
+  <div class="tabs">
+    <button class="tab active" id="tabToday" data-tab="today">Today</button>
+    <button class="tab" id="tabUpcoming" data-tab="upcoming">Upcoming</button>
+  </div>
+
+  <div class="streak-strip" id="streakStrip"></div>
+
+  <main id="main">
+
+    <div id="viewToday">
+      <div class="section" id="affirmationSection">
+        <div class="section-head">
+          <div class="section-title"><span class="dot" style="color:var(--c-affirmation); background:var(--c-affirmation)"></span>Today's affirmation</div>
+          <button class="add-btn" data-add="affirmation" aria-label="Add affirmation">+</button>
+        </div>
+        <div class="affirmation-card">
+          <div class="body" id="affirmationText">Add an affirmation to see it here each morning.</div>
+          <div class="affirmation-nav">
+            <button id="prevAff">← prev</button>
+            <div class="affirmation-dots" id="affDots"></div>
+            <button id="nextAff">next →</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="section" id="prayerSection">
+        <div class="section-head">
+          <div class="section-title"><span class="dot" style="color:var(--c-prayer); background:var(--c-prayer)"></span>Prayer points</div>
+          <div class="section-right"><span class="section-count" id="prayerCount"></span><button class="add-btn" data-add="prayer">+</button></div>
+        </div>
+        <div class="card-list" id="prayerList"></div>
+      </div>
+
+      <div class="section" id="exerciseSection">
+        <div class="section-head">
+          <div class="section-title"><span class="dot" style="color:var(--c-exercise); background:var(--c-exercise)"></span>Exercises</div>
+          <div class="section-right"><span class="section-count" id="exerciseCount"></span><button class="add-btn" data-add="exercise">+</button></div>
+        </div>
+        <div class="card-list" id="exerciseList"></div>
+      </div>
+
+      <div class="section" id="todoSection">
+        <div class="section-head">
+          <div class="section-title"><span class="dot" style="color:var(--c-todo); background:var(--c-todo)"></span>Today's plan</div>
+          <div class="section-right"><span class="section-count" id="todoCount"></span><button class="add-btn" data-add="todo">+</button></div>
+        </div>
+        <div class="card-list" id="todoList"></div>
+      </div>
+
+      <div class="section" id="habitSection">
+        <div class="section-head">
+          <div class="section-title"><span class="dot" style="color:var(--c-habit); background:var(--c-habit)"></span>Habits</div>
+          <div class="section-right"><span class="section-count" id="habitCount"></span><button class="add-btn" data-add="habit">+</button></div>
+        </div>
+        <div class="card-list" id="habitList"></div>
+      </div>
+
+      <div class="section" id="goalSection">
+        <div class="section-head">
+          <div class="section-title"><span class="dot" style="color:var(--c-goal); background:var(--c-goal)"></span>Goals</div>
+          <div class="section-right"><span class="section-count" id="goalCount"></span><button class="add-btn" data-add="goal">+</button></div>
+        </div>
+        <div class="card-list" id="goalList"></div>
+      </div>
+    </div>
+
+    <div id="viewUpcoming" style="display:none;">
+      <div class="section">
+        <div class="section-head">
+          <div class="section-title"><span class="dot" style="color:var(--c-todo); background:var(--c-todo)"></span>Upcoming plans</div>
+        </div>
+        <div class="card-list" id="upcomingList"></div>
+      </div>
+      <div class="section">
+        <div class="section-head">
+          <div class="section-title"><span class="dot" style="color:var(--danger); background:var(--danger)"></span>Overdue</div>
+        </div>
+        <div class="card-list" id="overdueList"></div>
+      </div>
+    </div>
+
+  </main>
+
+  <div class="composer-wrap">
+    <div class="composer">
+      <textarea id="chatInput" rows="1" placeholder="Tell me anything — a task, a habit, a prayer point, a goal…"></textarea>
+      <button class="send" id="sendBtn" aria-label="Send">➤</button>
+    </div>
+    <div class="composer-hint" id="composerHint">Type it in, I'll file it where it belongs.</div>
+  </div>
+
+  <div class="toast" id="toast"><span id="toastMsg"></span><button id="toastUndo" style="display:none;">Undo</button></div>
+
+  <div class="modal-backdrop" id="settingsBackdrop">
+    <div class="modal">
+      <h3>Settings</h3>
+      <label>Your name</label>
+      <input type="text" id="setName" placeholder="Jamie">
+      <label>Usual wake time (for the morning greeting)</label>
+      <input type="time" id="setWake">
+      <label>Google AI Studio API key <span style="color:var(--text-soft)">(for AI-powered chat filing)</span></label>
+      <input type="password" id="setApiKey" placeholder="AIza...">
+      <div style="font-size:11.5px; color:var(--text-soft); margin-top:6px; line-height:1.4;">Stored only on this device. Without a key, the chat still files things using a simpler built-in keyword matcher. Get a free key at aistudio.google.com/apikey.</div>
+      <div class="modal-actions">
+        <button class="btn-secondary" id="closeSettings">Cancel</button>
+        <button class="btn-primary" id="saveSettings">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="editBackdrop">
+    <div class="modal">
+      <h3 id="editTitle">Edit item</h3>
+      <label>Type</label>
+      <div class="type-pills" id="editTypePills"></div>
+      <label id="editTextLabel">Text</label>
+      <textarea id="editText"></textarea>
+      <div id="editDueWrap" style="display:none;">
+        <label>Due date</label>
+        <input type="date" id="editDue">
+      </div>
+      <div class="modal-actions">
+        <button class="btn-danger" id="editDelete">Delete</button>
+        <button class="btn-primary" id="editSave">Save</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// --- storage shim: mirrors the window.storage API so the rest of the app is unchanged ---
+window.storage = {
+  async get(key, shared){
+    const raw = localStorage.getItem((shared?'shared:':'personal:')+key);
+    if(raw===null) return null;
+    return {key, value:raw, shared:!!shared};
+  },
+  async set(key, value, shared){
+    localStorage.setItem((shared?'shared:':'personal:')+key, value);
+    return {key, value, shared:!!shared};
+  },
+  async delete(key, shared){
+    localStorage.removeItem((shared?'shared:':'personal:')+key);
+    return {key, deleted:true, shared:!!shared};
+  },
+  async list(prefix, shared){
+    const p=(shared?'shared:':'personal:')+(prefix||'');
+    const keys=[];
+    for(let i=0;i<localStorage.length;i++){
+      const k=localStorage.key(i);
+      if(k.startsWith(p)) keys.push(k.slice((shared?'shared:':'personal:').length));
+    }
+    return {keys, prefix, shared:!!shared};
+  }
+};
+if('serviceWorker' in navigator){
+  window.addEventListener('load', ()=> navigator.serviceWorker.register('service-worker.js').catch(()=>{}));
+}
+</script>
+<script>
+(function(){
+  const STATE_KEY = 'anchor-state-v2';
+  const CATS = {
+    prayer:{color:'var(--c-prayer)', label:'Prayer', hex:'#c77dff'},
+    affirmation:{color:'var(--c-affirmation)', label:'Affirmation', hex:'#ffd166'},
+    exercise:{color:'var(--c-exercise)', label:'Exercise', hex:'#4ade80'},
+    todo:{color:'var(--c-todo)', label:'Todo', hex:'#4ea8ff'},
+    habit:{color:'var(--c-habit)', label:'Habit', hex:'#ff9f45'},
+    goal:{color:'var(--c-goal)', label:'Goal', hex:'#ff6ec7'}
+  };
+  let state = {
+    settings:{ name:'', wakeTime:'06:00' },
+    items:[],
+    goals:[],
+    affIndex:0,
+    seededV1:false
+  };
+
+  const SEED_PRAYERS = [
+    "(Direction) Lord, make my next step clear.",
+    "(Direction) Lead me to the opportunities You have prepared for me.",
+    "(Direction) Give me discernment when I must make difficult decisions.",
+    "(Master's journey) Grant me favour with universities and professors.",
+    "(Master's journey) Open doors for scholarships and funding.",
+    "(Master's journey) Prepare me academically and mentally.",
+    "(Career) Help me become an outstanding researcher.",
+    "(Career) Give me excellence in Python and data analytics.",
+    "(Career) Help me develop skills that solve real problems.",
+    "(Career) Connect me with mentors who will challenge and encourage me.",
+    "(Career) Let my work speak before I do.",
+    "(Finances) Teach me wisdom in managing money.",
+    "(Finances) Bless the work of my hands.",
+    "(Finances) Protect me from dishonest opportunities.",
+    "(Finances) Help me become generous without becoming careless.",
+    "(Relationship) Teach us patience and understanding.",
+    "(Relationship) Help us communicate with grace.",
+    "(Relationship) Help us encourage each other's dreams.",
+    "(Relationship) Let our relationship produce peace rather than confusion.",
+    "(Mind) Deliver me from fear and overthinking.",
+    "(Mind) Replace anxiety with peace.",
+    "(Mind) Give me confidence without pride.",
+    "(Mind) Help me stay disciplined even when motivation fades.",
+    "(Character) Make me humble enough to learn.",
+    "(Character) Strong enough to endure.",
+    "(Character) Wise enough to wait.",
+    "(Character) Brave enough to act.",
+    "(Character) Loving enough to forgive.",
+    "Heavenly Father, thank You for another day. Give me wisdom to make the right decisions, courage to face difficult moments, and patience to trust Your timing. Help me become the man You created me to be. Strengthen my mind so I continue learning. Strengthen my hands so my work brings excellence. Strengthen my heart so I remain kind even when life is difficult. Open doors that no one can shut, and close every door that would lead me away from my purpose. Protect my loved ones. Teach me discipline instead of procrastination, faith instead of fear, and peace instead of anxiety. May my education, my career, and my gifts become a blessing to many people. Amen."
+  ];
+
+  const SEED_AFFIRMATIONS = [
+    "I am exactly where I need to be to become the person I was created to be.",
+    "I do not compare my timeline with anyone else's.",
+    "Every day I grow in wisdom, discipline, and confidence.",
+    "My mind is sharp, my heart is calm, and my spirit is steady.",
+    "I welcome opportunities that align with my purpose.",
+    "I learn quickly, adapt easily, and solve meaningful problems.",
+    "I am becoming an exceptional engineer, researcher, and leader.",
+    "My work will improve people's lives.",
+    "I deserve success because I prepare for it faithfully.",
+    "I release fear and choose courage.",
+    "God's timing is perfect, and I trust the process.",
+    "I focus deeply.",
+    "Difficult concepts become clear to me.",
+    "I enjoy learning.",
+    "Every hour I invest today creates opportunities tomorrow.",
+    "I am building skills that will open doors around the world.",
+    "I am a wise steward of every naira I receive.",
+    "My income will grow because my value continues to grow.",
+    "I create multiple streams of honest income.",
+    "Opportunities find me because I prepare for them.",
+    "I build wealth patiently, intelligently, and generously.",
+    "I will have more than enough to care for myself and bless others.",
+    "I communicate with honesty and kindness.",
+    "I love without losing myself.",
+    "I choose patience over pride.",
+    "My relationships are built on trust, respect, and peace.",
+    "I attract people who celebrate my growth.",
+    "I release today's worries.",
+    "I forgive myself for today's mistakes.",
+    "I am proud of the effort I made today.",
+    "Tomorrow is another opportunity to grow.",
+    "My mind rests peacefully.",
+    "My body is healing while I sleep.",
+    "I am becoming a man of wisdom, discipline, compassion, and excellence. Every challenge I face is preparing me for greater responsibility. I refuse to be defined by fear, delay, or disappointment. I will continue learning, growing, and serving with integrity. My work will improve lives. My relationships will be marked by love and honesty. My mind will remain curious, my heart will remain humble, and my faith will remain strong. I trust that each faithful step I take today is preparing me for opportunities I cannot yet see."
+  ];
+
+  function seedIfNeeded(){
+    if(state.seededV1) return;
+    state.seededV1 = true;
+    SEED_PRAYERS.forEach(text=>{
+      state.items.push({id:uid(), type:'prayer', text, dueDate:null, createdAt:todayISO(), completions:{}});
+    });
+    SEED_AFFIRMATIONS.forEach(text=>{
+      state.items.push({id:uid(), type:'affirmation', text, dueDate:null, createdAt:todayISO(), completions:{}});
+    });
+    saveState();
+  }
+  let saveTimer=null;
+  let lastDeleted=null; // {kind:'item'|'goal', data, index}
+  let editingId=null; let editingKind=null; let editingSelectedType='todo';
+
+  function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
+  function todayISO(){ return new Date().toISOString().slice(0,10); }
+  function addDays(iso, n){ const d=new Date(iso+'T00:00:00'); d.setDate(d.getDate()+n); return d.toISOString().slice(0,10); }
+  function fmtDate(){ return new Date().toLocaleDateString(undefined,{weekday:'long', month:'long', day:'numeric'}); }
+  function escapeHtml(s){ const d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
+
+  async function loadState(){
+    try{
+      const res = await window.storage.get(STATE_KEY, false);
+      if(res && res.value){ state = Object.assign(state, JSON.parse(res.value)); }
+    }catch(e){ /* first run, nothing saved yet */ }
+    seedIfNeeded();
+    render();
+  }
+  function saveState(){
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(async ()=>{
+      try{ await window.storage.set(STATE_KEY, JSON.stringify(state), false); }
+      catch(e){ console.error('save failed', e); showToast("Couldn't save — check connection", false); }
+    }, 250);
+  }
+
+  function computeStreak(item){
+    let streak=0; let d=new Date();
+    if(!item.completions[todayISO()]) d.setDate(d.getDate()-1);
+    while(true){
+      const iso=d.toISOString().slice(0,10);
+      if(item.completions[iso]){ streak++; d.setDate(d.getDate()-1); } else break;
+    }
+    return streak;
+  }
+  function isDoneToday(item){ return !!item.completions[todayISO()]; }
+
+  function toggleItem(id){
+    const item = state.items.find(i=>i.id===id);
+    if(!item) return;
+    const t = todayISO();
+    if(item.completions[t]) delete item.completions[t]; else item.completions[t]=true;
+    saveState(); render();
+  }
+
+  function deleteItemById(id){
+    const idx = state.items.findIndex(i=>i.id===id);
+    if(idx===-1) return;
+    lastDeleted = {kind:'item', data:state.items[idx]};
+    state.items.splice(idx,1);
+    saveState(); render();
+    showToast('Deleted "'+truncate(lastDeleted.data.text,28)+'"', true);
+  }
+  function deleteGoalById(id){
+    const idx = state.goals.findIndex(g=>g.id===id);
+    if(idx===-1) return;
+    lastDeleted = {kind:'goal', data:state.goals[idx]};
+    state.goals.splice(idx,1);
+    saveState(); render();
+    showToast('Deleted goal "'+truncate(lastDeleted.data.text,28)+'"', true);
+  }
+  function undoDelete(){
+    if(!lastDeleted) return;
+    if(lastDeleted.kind==='item') state.items.push(lastDeleted.data);
+    else state.goals.push(lastDeleted.data);
+    lastDeleted=null;
+    saveState(); render();
+    hideToast();
+  }
+  function truncate(s,n){ return s.length>n ? s.slice(0,n)+'…' : s; }
+
+  function bumpGoal(id, delta){
+    const g = state.goals.find(g=>g.id===id);
+    if(!g) return;
+    g.progress = Math.max(0, Math.min(100, g.progress+delta));
+    saveState(); render();
+  }
+
+  let toastTimer=null;
+  function showToast(msg, withUndo){
+    const t=document.getElementById('toast');
+    document.getElementById('toastMsg').textContent = msg;
+    const undoBtn = document.getElementById('toastUndo');
+    undoBtn.style.display = withUndo ? 'inline-block' : 'none';
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(hideToast, 5000);
+  }
+  function hideToast(){
+    document.getElementById('toast').classList.remove('show');
+  }
+  document.getElementById('toastUndo').onclick = undoDelete;
+
+  function itemRow(item, opts){
+    opts = opts||{};
+    const cat = CATS[item.type] || CATS.todo;
+    const div = document.createElement('div');
+    div.className = 'item' + (isDoneToday(item)?' done':'');
+    div.style.setProperty('--cat-color', cat.hex);
+    const check = document.createElement('div');
+    check.className='check';
+    check.textContent = isDoneToday(item)?'✓':'';
+    check.onclick = ()=>toggleItem(item.id);
+    const body=document.createElement('div');
+    body.className='item-body';
+    body.onclick = ()=>openEdit('item', item.id);
+    const txt=document.createElement('div');
+    txt.className='item-text';
+    txt.textContent=item.text;
+    body.appendChild(txt);
+    if(opts.showStreak){
+      const meta=document.createElement('div'); meta.className='item-meta';
+      const s=computeStreak(item);
+      meta.textContent = s>0 ? (s+' day streak') : 'start today';
+      body.appendChild(meta);
+    } else if(item.dueDate){
+      const meta=document.createElement('div'); meta.className='item-meta';
+      if(item.dueDate < todayISO()) meta.textContent='overdue — was due '+item.dueDate;
+      else if(item.dueDate > todayISO()) meta.textContent='due '+item.dueDate;
+      body.appendChild(meta);
+    }
+    const del=document.createElement('button');
+    del.className='item-del'; del.textContent='×'; del.setAttribute('aria-label','Delete');
+    del.onclick=(e)=>{ e.stopPropagation(); deleteItemById(item.id); };
+    div.appendChild(check); div.appendChild(body); div.appendChild(del);
+    return div;
+  }
+
+  function renderList(containerId, countId, items, opts){
+    let c=document.getElementById(containerId);
+    c.innerHTML='';
+    if(items.length===0){
+      const empty=document.createElement('div');
+      empty.className='empty';
+      empty.id = containerId;
+      empty.textContent = (opts && opts.emptyText) || 'Nothing here yet.';
+      c.replaceWith(empty);
+      if(document.getElementById(countId)) document.getElementById(countId).textContent='';
+      return;
+    }
+    if(document.getElementById(countId)) document.getElementById(countId).textContent = items.filter(i=>isDoneToday(i)).length+' / '+items.length;
+    items.forEach(item=> c.appendChild(itemRow(item, opts)));
+  }
+
+  function renderGoals(){
+    let c=document.getElementById('goalList');
+    c.innerHTML='';
+    if(state.goals.length===0){
+      const empty=document.createElement('div'); empty.className='empty'; empty.id='goalList';
+      empty.textContent='No goals yet — try "goal: run a 5k by December".';
+      c.replaceWith(empty);
+      document.getElementById('goalCount').textContent=''; return;
+    }
+    document.getElementById('goalCount').textContent = state.goals.length;
+    state.goals.forEach(g=>{
+      const row=document.createElement('div'); row.className='goal-item';
+      row.innerHTML = `
+        <div class="goal-top">
+          <div class="goal-text" data-role="text">${escapeHtml(g.text)}</div>
+          <div class="goal-pct">${g.progress}%</div>
+        </div>
+        <div class="goal-bar"><div class="goal-fill" style="width:${g.progress}%"></div></div>
+        <div class="goal-controls">
+          <button data-act="minus">−10%</button>
+          <button data-act="plus">+10%</button>
+          <button data-act="edit">edit</button>
+          <button data-act="del">remove</button>
+        </div>`;
+      row.querySelector('[data-act="minus"]').onclick=()=>bumpGoal(g.id,-10);
+      row.querySelector('[data-act="plus"]').onclick=()=>bumpGoal(g.id,10);
+      row.querySelector('[data-act="edit"]').onclick=()=>openEdit('goal', g.id);
+      row.querySelector('[data-act="del"]').onclick=()=>deleteGoalById(g.id);
+      c.appendChild(row);
+    });
+  }
+
+  function renderStreakStrip(){
+    const strip=document.getElementById('streakStrip');
+    strip.innerHTML='';
+    const recurring = state.items.filter(i=>i.type==='habit' || i.type==='exercise' || i.type==='prayer');
+    const top = recurring.map(i=>({item:i, streak:computeStreak(i)})).filter(x=>x.streak>0).sort((a,b)=>b.streak-a.streak).slice(0,6);
+    if(top.length===0){ strip.style.display='none'; return; }
+    strip.style.display='flex';
+    top.forEach(({item,streak})=>{
+      const cat = CATS[item.type];
+      const chip=document.createElement('div'); chip.className='streak-chip';
+      chip.innerHTML = `<span class="n" style="color:${cat.hex}">${streak}🔥</span> ${escapeHtml(truncate(item.text,22))}`;
+      strip.appendChild(chip);
+    });
+  }
+
+  function renderAffirmation(){
+    const affs = state.items.filter(i=>i.type==='affirmation');
+    const el = document.getElementById('affirmationText');
+    const dots = document.getElementById('affDots');
+    dots.innerHTML='';
+    if(affs.length===0){ el.textContent='Add an affirmation to see it here each morning.'; return; }
+    if(state.affIndex>=affs.length) state.affIndex=0;
+    if(state.affIndex<0) state.affIndex=affs.length-1;
+    el.textContent = affs[state.affIndex].text;
+    affs.forEach((_,i)=>{
+      const d=document.createElement('span');
+      if(i===state.affIndex) d.className='active';
+      dots.appendChild(d);
+    });
+  }
+
+  function renderUpcoming(){
+    const today = todayISO();
+    const upcoming = state.items.filter(i=>i.type==='todo' && i.dueDate && i.dueDate>today).sort((a,b)=>a.dueDate.localeCompare(b.dueDate));
+    const overdue = state.items.filter(i=>i.type==='todo' && i.dueDate && i.dueDate<today && !isDoneToday(i));
+    renderList('upcomingList', null, upcoming, {emptyText:'Nothing scheduled ahead — todos with a future date show up here.'});
+    renderList('overdueList', null, overdue, {emptyText:'Nothing overdue. Clean slate.'});
+  }
+
+  function render(){
+    const name = state.settings.name || 'there';
+    document.getElementById('greeting').textContent = greetingForTime()+', '+name;
+    document.getElementById('datestr').textContent = fmtDate();
+
+    renderList('prayerList','prayerCount', state.items.filter(i=>i.type==='prayer'), {showStreak:true, emptyText:'No prayer points yet — add one in the chat below.'});
+    renderList('exerciseList','exerciseCount', state.items.filter(i=>i.type==='exercise'), {showStreak:true, emptyText:'No exercises yet — tell the chat what you want to do.'});
+    renderList('todoList','todoCount', state.items.filter(i=>i.type==='todo' && (!i.dueDate || i.dueDate<=todayISO())), {emptyText:'Nothing planned yet — tell me your plan for today.'});
+    renderList('habitList','habitCount', state.items.filter(i=>i.type==='habit'), {showStreak:true, emptyText:'No habits yet — add one in the chat below.'});
+    renderGoals();
+    renderAffirmation();
+    renderStreakStrip();
+    renderUpcoming();
+  }
+
+  function greetingForTime(){
+    const h=new Date().getHours();
+    if(h<12) return 'Good morning';
+    if(h<17) return 'Good afternoon';
+    return 'Good evening';
+  }
+
+  // ---------- Chat parsing ----------
+  function localFallbackClassify(text){
+    // simple offline/error-fallback heuristic so the app still "gets it done" without the API
+    const lower = text.toLowerCase();
+    const segments = text.split(/(?:,| and |\n|;)+/).map(s=>s.trim()).filter(Boolean);
+    const out = [];
+    segments.forEach(seg=>{
+      const l = seg.toLowerCase();
+      let type = 'todo';
+      if(/\bpray|prayer|lord|god\b/.test(l)) type='prayer';
+      else if(/\bi am\b|\bi'm\b|affirm/.test(l)) type='affirmation';
+      else if(/push[- ]?up|run|jog|cardio|squat|plank|workout|exercise|gym|stretch/.test(l)) type='exercise';
+      else if(/^goal\s*:|\bgoal\b/.test(l)) type='goal';
+      else if(/\bhabit\b|every day|daily/.test(l)) type='habit';
+      let clean = seg.replace(/^(add|remind me to|goal:|todo:|habit:|prayer:|exercise:)\s*/i,'').trim();
+      if(clean) out.push({type, text: clean.charAt(0).toUpperCase()+clean.slice(1), dueDate: type==='todo' ? todayISO() : null});
+    });
+    return out;
+  }
+
+  const GEMINI_MODEL = "gemini-2.5-flash";
+
+  async function classifyText(text){
+    const apiKey = (state.settings.apiKey||'').trim();
+    if(!apiKey) throw new Error('no-api-key');
+
+    const today = todayISO();
+    const sys = `You are a parser for a personal daily-ritual app. Given a free-text message, break it into one or more discrete items.
+Return ONLY valid JSON, no markdown fences, no preamble. Shape:
+{"items":[{"type":"prayer|affirmation|exercise|todo|habit|goal","text":"short clean version of the item","dueDate":"YYYY-MM-DD or null"}]}
+Rules:
+- "type" must be one of: prayer (a prayer point/intention), affirmation (a positive self-statement to read), exercise (a physical exercise/workout item), habit (a recurring behavior tracked daily, not tied to one date), todo (a one-off task, may have a due date), goal (a longer-term outcome, not a daily action).
+- If the message describes plans for the day ("today I need to...", "my plan is...") split each distinct action into its own todo item with dueDate "${today}".
+- Keep "text" short and in the user's own words, cleaned up, no leading verbs like "add" or "remind me to".
+- If nothing classifiable is present, return {"items":[]}.
+- Today's date is ${today}.`;
+
+    const resp = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`,
+      {
+        method:"POST",
+        headers:{
+          "Content-Type":"application/json",
+          "x-goog-api-key": apiKey
+        },
+        body: JSON.stringify({
+          system_instruction: { parts:[{ text: sys }] },
+          contents: [{ role:"user", parts:[{ text }] }],
+          generationConfig: { responseMimeType: "application/json" }
+        })
+      }
+    );
+    if(resp.status===400 || resp.status===403) throw new Error('bad-api-key');
+    if(!resp.ok) throw new Error('API error '+resp.status);
+    const data = await resp.json();
+    const textOut = (((data.candidates||[])[0]||{}).content||{}).parts?.map(p=>p.text||'').join('\n') || '';
+    const clean = textOut.replace(/```json|```/g,'').trim();
+    let parsed;
+    try{ parsed = JSON.parse(clean); }catch(e){ throw new Error('parse error'); }
+    return parsed.items || [];
+  }
+
+  function commitItems(items, offline){
+    items.forEach(it=>{
+      if(it.type==='goal'){
+        state.goals.push({id:uid(), text:it.text, progress:0});
+      }else{
+        state.items.push({ id:uid(), type:it.type, text:it.text, dueDate: it.dueDate || null, createdAt: todayISO(), completions:{} });
+      }
+    });
+    saveState(); render();
+    const summary = items.map(i=>i.type).join(', ');
+    showToast((offline?'Added offline: ':'Added: ')+summary, false);
+  }
+
+  async function handleSend(){
+    const input = document.getElementById('chatInput');
+    const text = input.value.trim();
+    if(!text) return;
+    const sendBtn = document.getElementById('sendBtn');
+    const hint = document.getElementById('composerHint');
+    input.value=''; input.style.height='auto';
+    sendBtn.disabled = true;
+    hint.innerHTML = 'Filing that away<span class="loading-dots"><span></span><span></span><span></span></span>';
+    document.getElementById('offlineBanner').classList.remove('show');
+
+    try{
+      const items = await classifyText(text);
+      if(items.length===0){
+        hint.textContent = "Didn't catch anything to file — try rephrasing, or use a + button to add it directly.";
+      }else{
+        commitItems(items, false);
+        hint.textContent = 'Type it in, I\'ll file it where it belongs.';
+      }
+    }catch(e){
+      console.error('classify failed, using fallback', e);
+      const items = localFallbackClassify(text);
+      let reason = 'Filed with best-guess categories — tap any item to fix its type.';
+      if(e.message==='no-api-key') reason = 'No API key set yet — filed with keyword matching. Add a key in Settings for full AI parsing.';
+      else if(e.message==='bad-api-key') reason = 'That API key was rejected — filed with keyword matching. Check the key in Settings.';
+      else document.getElementById('offlineBanner').classList.add('show');
+      if(items.length===0){
+        hint.textContent = "Couldn't file that — try a + button to add it directly.";
+      }else{
+        commitItems(items, true);
+        hint.textContent = reason;
+      }
+    }finally{
+      sendBtn.disabled=false;
+    }
+  }
+
+  // ---------- manual add / edit modal ----------
+  const editBackdrop = document.getElementById('editBackdrop');
+  const editTypePills = document.getElementById('editTypePills');
+  const editDueWrap = document.getElementById('editDueWrap');
+
+  function buildTypePills(){
+    editTypePills.innerHTML='';
+    Object.keys(CATS).forEach(type=>{
+      const p=document.createElement('button');
+      p.type='button'; p.className='type-pill'; p.textContent=CATS[type].label; p.dataset.type=type;
+      p.onclick=()=>{ editingSelectedType=type; refreshPillStates(); editDueWrap.style.display = type==='todo' ? 'block' : 'none'; };
+      editTypePills.appendChild(p);
+    });
+  }
+  function refreshPillStates(){
+    [...editTypePills.children].forEach(p=>{
+      const active = p.dataset.type===editingSelectedType;
+      p.classList.toggle('active', active);
+      p.style.background = active ? CATS[p.dataset.type].hex : '';
+      p.style.borderColor = active ? CATS[p.dataset.type].hex : '';
+    });
+  }
+  buildTypePills();
+
+  function openAdd(type){
+    editingId=null; editingKind='new'; editingSelectedType = type || 'todo';
+    document.getElementById('editTitle').textContent = 'Add '+ (CATS[editingSelectedType]?CATS[editingSelectedType].label.toLowerCase():'item');
+    document.getElementById('editText').value='';
+    document.getElementById('editDue').value = todayISO();
+    editDueWrap.style.display = editingSelectedType==='todo' ? 'block':'none';
+    document.getElementById('editDelete').style.display='none';
+    refreshPillStates();
+    editBackdrop.classList.add('show');
+    setTimeout(()=>document.getElementById('editText').focus(), 50);
+  }
+
+  function openEdit(kind, id){
+    editingKind = kind; editingId = id;
+    document.getElementById('editDelete').style.display='block';
+    if(kind==='item'){
+      const item = state.items.find(i=>i.id===id);
+      if(!item) return;
+      editingSelectedType = item.type;
+      document.getElementById('editTitle').textContent='Edit item';
+      document.getElementById('editText').value=item.text;
+      document.getElementById('editDue').value = item.dueDate || todayISO();
+      editDueWrap.style.display = item.type==='todo' ? 'block':'none';
+    }else{
+      const g = state.goals.find(g=>g.id===id);
+      if(!g) return;
+      editingSelectedType='goal';
+      document.getElementById('editTitle').textContent='Edit goal';
+      document.getElementById('editText').value=g.text;
+      editDueWrap.style.display='none';
+    }
+    refreshPillStates();
+    editBackdrop.classList.add('show');
+  }
+
+  document.getElementById('editSave').onclick = ()=>{
+    const text = document.getElementById('editText').value.trim();
+    if(!text) return;
+    const due = document.getElementById('editDue').value || null;
+
+    if(editingKind==='new'){
+      if(editingSelectedType==='goal'){
+        state.goals.push({id:uid(), text, progress:0});
+      }else{
+        state.items.push({id:uid(), type:editingSelectedType, text, dueDate: editingSelectedType==='todo'?due:null, createdAt:todayISO(), completions:{}});
+      }
+      showToast('Added', false);
+    }else if(editingKind==='item'){
+      const item = state.items.find(i=>i.id===editingId);
+      if(item){ item.type=editingSelectedType; item.text=text; item.dueDate = editingSelectedType==='todo' ? due : null; }
+    }else if(editingKind==='goal'){
+      if(editingSelectedType==='goal'){
+        const g = state.goals.find(g=>g.id===editingId);
+        if(g) g.text=text;
+      }else{
+        // converted from goal to another type
+        const gi = state.goals.findIndex(g=>g.id===editingId);
+        if(gi!==-1){
+          state.goals.splice(gi,1);
+          state.items.push({id:uid(), type:editingSelectedType, text, dueDate: editingSelectedType==='todo'?due:null, createdAt:todayISO(), completions:{}});
+        }
+      }
+    }
+    saveState(); render();
+    editBackdrop.classList.remove('show');
+  };
+
+  document.getElementById('editDelete').onclick = ()=>{
+    if(editingKind==='item') deleteItemById(editingId);
+    else if(editingKind==='goal') deleteGoalById(editingId);
+    editBackdrop.classList.remove('show');
+  };
+
+  document.querySelectorAll('[data-add]').forEach(btn=>{
+    btn.onclick = ()=> openAdd(btn.dataset.add);
+  });
+
+  editBackdrop.addEventListener('click', (e)=>{ if(e.target===editBackdrop) editBackdrop.classList.remove('show'); });
+
+  // ---------- wiring ----------
+  document.getElementById('sendBtn').onclick = handleSend;
+  const chatInput = document.getElementById('chatInput');
+  chatInput.addEventListener('keydown', e=>{
+    if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); handleSend(); }
+  });
+  chatInput.addEventListener('input', ()=>{
+    chatInput.style.height='auto';
+    chatInput.style.height = Math.min(chatInput.scrollHeight, 90)+'px';
+  });
+
+  document.getElementById('prevAff').onclick = ()=>{ state.affIndex--; render(); };
+  document.getElementById('nextAff').onclick = ()=>{ state.affIndex++; render(); };
+
+  document.querySelectorAll('.tab').forEach(tab=>{
+    tab.onclick = ()=>{
+      document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+      tab.classList.add('active');
+      const isToday = tab.dataset.tab==='today';
+      document.getElementById('viewToday').style.display = isToday?'block':'none';
+      document.getElementById('viewUpcoming').style.display = isToday?'none':'block';
+    };
+  });
+
+  const settingsBackdrop = document.getElementById('settingsBackdrop');
+  document.getElementById('settingsBtn').onclick = ()=>{
+    document.getElementById('setName').value = state.settings.name||'';
+    document.getElementById('setWake').value = state.settings.wakeTime||'06:00';
+    document.getElementById('setApiKey').value = state.settings.apiKey||'';
+    settingsBackdrop.classList.add('show');
+  };
+  document.getElementById('closeSettings').onclick = ()=> settingsBackdrop.classList.remove('show');
+  settingsBackdrop.addEventListener('click', (e)=>{ if(e.target===settingsBackdrop) settingsBackdrop.classList.remove('show'); });
+  document.getElementById('saveSettings').onclick = ()=>{
+    state.settings.name = document.getElementById('setName').value.trim();
+    state.settings.wakeTime = document.getElementById('setWake').value || '06:00';
+    state.settings.apiKey = document.getElementById('setApiKey').value.trim();
+    saveState(); render();
+    settingsBackdrop.classList.remove('show');
+  };
+
+  window.addEventListener('online', ()=> document.getElementById('offlineBanner').classList.remove('show'));
+
+  loadState();
+})();
+</script>
+</body>
+</html>
